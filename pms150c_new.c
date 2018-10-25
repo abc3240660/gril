@@ -20,19 +20,19 @@ void FPPA0(void)
 {
 	.ADJUST_IC	SYSCLK = IHRC/2// SYSCLK = IHRC/2
 
-	$p_Out3	Out, Low;// off
-	$p_Out5	Out, Low;// off
-	$p_Out7	Out, Low;// off
+	$ p_Out3	Out, Low;// off
+	$ p_Out5	Out, Low;// off
+	$ p_Out7	Out, Low;// off
 
-	$p_In2		In;
-	$p_In6		In;
+	$ p_In2		In;
+	$ p_In6		In;
 
-	$T16M		IHRC, /1, BIT10;// 16MHz/1 = 16MHz:the time base of T16.
-	$TM2C		IHRC, Disable, Period, Inverse;
+	$ T16M		IHRC, /1, BIT10;// 16MHz/1 = 16MHz:the time base of T16.
+	$ TM2C		IHRC, Disable, Period, Inverse;
 
 	gpcs   = 0b1111_1101;// Vinternal R = Vdd*14/32
 	gpcc   = 0b1001_0111;// +:PA4, -:Vinternal R
-        padier = 0b111_0_1111;// disable digital input for PA4
+	padier = 0b111_0_1111;// disable digital input for PA4
 
 	// Insert Initial Code
 	duty_ratio = 0;
@@ -46,6 +46,8 @@ void FPPA0(void)
 	BIT	f_In2_Trig	:	Sys_Flag.2;
 	BIT	f_In6_Trig	:	Sys_Flag.3;
 	BIT	f_In2_lock	:	Sys_Flag.4;
+	BIT	f_In3_value	:	Sys_Flag.5;
+	BIT	f_In7_value	:	Sys_Flag.6;
 
 
 	// 0~7 : A~H
@@ -80,9 +82,21 @@ void FPPA0(void)
 			f_5ms_Trig = 0;
 
 			if (3 == mode_In6) {
-				p_Out7 = ~p_Out7;
+				if (f_In7_value) {
+					p_Out7 = 0;
+					f_In7_value = 0;
+				} else {
+					p_Out7 = 1;
+					f_In7_value = 1;
+				}
 			} else if (5 == mode_In6){
-				p_Out3 = ~p_Out3;
+				if (f_In3_value) {
+					p_Out3 = 0;
+					f_In3_value = 0;
+				} else {
+					p_Out3 = 1;
+					f_In3_value = 1;
+				}
 			}
 		}
 
@@ -160,17 +174,24 @@ void FPPA0(void)
 				count_one_sec = 0;
 
 				f_In2_Trig = 0;
-				f_In2_lock = ~f_In2_lock;
+				if (f_In2_lock) {
+					f_In2_lock = 0;
+				} else {
+					f_In2_lock = 1;
+				}
 			}
 
-			if (0 == f_In2_lock) {
+			if (!f_In2_lock) {
 				if (f_In6_Trig) {
 					// to re-initialize idle-shutdown timer(30 mins)
 					count_l = 0;
 					count_h = 0;
 					count_one_sec = 0;
 
-					mode_In6 = (mode_In6++)%7;
+					mode_In6++;
+					if (7 == mode_In6) {
+						mode_In6 = 0;
+					}
 				}
 				if (mode_In6 != mode_In6_last) {
 					if (0 == mode_In6) {
@@ -212,7 +233,7 @@ void FPPA0(void)
 						p_Out7 = 0;
 					}
 
-					mode_In6_last = mode_In;
+					mode_In6_last = mode_In6;
 				}
 
 			}
