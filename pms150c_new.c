@@ -30,6 +30,10 @@ void FPPA0(void)
 	$T16M		IHRC, /1, BIT10;// 16MHz/1 = 16MHz:the time base of T16.
 	$TM2C		IHRC, Disable, Period, Inverse;
 
+	gpcs   = 0b1111_1101;// Vinternal R = Vdd*14/32
+	gpcc   = 0b1001_0111;// +:PA4, -:Vinternal R
+        padier = 0b111_0_1111;// disable digital input for PA4
+
 	// Insert Initial Code
 	duty_ratio = 0;
 
