@@ -1,285 +1,216 @@
 #include	"extern.h"
 
-// duty ratio=X%, duty_ratio=X
+// duty ratio = X%, duty_ratio = X
 static BYTE duty_ratio;
 static WORD duty_reg;
 
 static void pwm_enable(void);
 static void pwm_disable(void);
-static void pwm_route_pa3(void);
-static void pwm_route_pa4(void);
-static void pwm_change(void);
+static void pwm_duty_set(void);
 
-BIT		p_In2	:	PA.7;
-BIT		p_In7	:	PA.0;
-BIT		p_In7X	:	PA.6;
+BIT p_In2	:	PA.7;
+BIT p_In6	:	PA.4;
+BIT p_In6X	:	PA.6;// just for update flag
 
-BIT		p_Out3	:	PA.6;
-BIT		p_Out5	:	PA.3;
-BIT		p_Out6	:	PA.4;
+BIT p_Out3	:	PA.6;
+BIT p_Out5	:	PA.3;
+BIT p_Out7	:	PA.0;
 
-
-void	FPPA0 (void)
+void FPPA0(void)
 {
-	.ADJUST_IC	SYSCLK=IHRC/2		//	SYSCLK=IHRC/2
+	.ADJUST_IC	SYSCLK = IHRC/2// SYSCLK = IHRC/2
 
-	$ p_Out3	    Out, Low;// off
-	$ p_Out5	    Out, Low;// off
-	$ p_Out6	    Out, Low;// off
+	$p_Out3	Out, Low;// off
+	$p_Out5	Out, Low;// off
+	$p_Out7	Out, Low;// off
 
-	$ p_In2		    In;
-	$ p_In7		    In;
+	$p_In2		In;
+	$p_In6		In;
 
-	$ T16M		IHRC, /1, BIT10;			//	16MHz / 1 = 16MHz : the time base of T16.
-	$ TM2C		IHRC, Disable, Period, Inverse;
+	$T16M		IHRC, /1, BIT10;// 16MHz/1 = 16MHz:the time base of T16.
+	$TM2C		IHRC, Disable, Period, Inverse;
 
-	//	Insert Initial Code
+	// Insert Initial Code
 	duty_ratio = 0;
 
 	BYTE	Key_Flag;
-	Key_Flag = _FIELD(p_In2, p_In7X);
+	Key_Flag = _FIELD(p_In2, p_In6X);
 
 	BYTE	Sys_Flag = 0;
-	BIT	t16_10ms		:	Sys_Flag.0;
-	BIT	f_KeyA_Short_Trig	:	Sys_Flag.1;
-	BIT	f_KeyA_Long_Trig	:	Sys_Flag.2;
-	BIT	f_KeyB_Short_Trig	:	Sys_Flag.3;
-	BIT	f_KeyB_Long_Trig	:	Sys_Flag.4;
-	BIT	f_KeyA_Switch_ON	:	Sys_Flag.5;// short press
-	BIT	f_KeyA_Changing_END	:	Sys_Flag.6;
-	BIT	f_KeyA_TUNE_ADD		:	Sys_Flag.7;// duty_ratio = duty_ratio + 1;
+	BIT	f_5ms_Trig	:	Sys_Flag.0;
+	BIT	f_10ms_Trig	:	Sys_Flag.1;
+	BIT	f_In2_Trig	:	Sys_Flag.2;
+	BIT	f_In6_Trig	:	Sys_Flag.3;
+	BIT	f_In2_lock	:	Sys_Flag.4;
 
-	BYTE	Sys_FlagX = 0;
-	BIT	f_KeyB_TIME_OUT		:	Sys_FlagX.0;
-	BIT	f_In7_valid		:	Sys_FlagX.1;
 
-	BYTE	mode_KeyB_short = 0;// default off mode
+	// 0~7 : A~H
+	BYTE	mode_In6 	= 0;
+	BYTE	mode_In6_last 	= 8;
+	BYTE	count_5ms 	= 1;
+	BYTE	count_10ms	= 1;
+	BYTE	count_l 	= 0;
+	BYTE	count_h 	= 0;
+	BYTE	count_one_sec 	= 0;
 
-	BYTE	t16_flag;
-	BYTE	count1 = 1;
-	BYTE	count_l = 0;
-	BYTE	count_h = 0;
-	BYTE	count_one_sec = 0;
+	//debounce_tim=N*10ms
+	BYTE	debounce_time_In2	=	4;//Keydebouncetime=40mS
+	BYTE	debounce_time_In6	=	4;//Keydebouncetime=40mS
 
-	// debounce_tim = N * 10ms
-	BYTE	debounce_time_In7	         =	4;// Key debounce time = 550 mS
-	BYTE	debounce_time_KeyA_short	 =	55;// Key debounce time = 550 mS
-	BYTE	debounce_time_KeyA_long		 =	4; // Key debounce time = 40 mS
-	BYTE	debounce_time_KeyB_short	 =	55;// Key debounce time = 550 mS
-	BYTE	debounce_time_KeyB_long		 =	4; // Key debounce time = 40 mS
+	while (1) {
+		if (INTRQ.T16) {
+			INTRQ.T16 = 0;
 
-	BYTE	period_time_dutyratio_update =	50; // 50 mS
+			if (--count_5ms == 0) {
+				count_5ms = 39;// 128uS*39=5mS
+				f_5ms_Trig = 1;
+			}
 
-	while (1)
-	{
-		if (INTRQ.T16)
-		{
-			INTRQ.T16		=	0;
-			If (--count1 == 0)					//	DZSN  count
-			{
-				count1		=	78;			//	128uS * 78 = 10 mS 
-				t16_10ms	=	1;
+			if (--count_10ms == 0) {
+				count_10ms = 78;// 128uS*78=10mS
+				f_10ms_Trig = 1;
 			}
 		}
 
-		while (t16_10ms)
-		{
-			t16_10ms	=	0;
+		if (f_5ms_Trig) {// every 5ms
+			f_5ms_Trig = 0;
 
-			if (GPCC.6) {
+			if (3 == mode_In6) {
+				p_Out7 = ~p_Out7;
+			} else if (5 == mode_In6){
+				p_Out3 = ~p_Out3;
 			}
+		}
 
-			// 0: off
-			// 1: 30 minutes = 30 * 60 = 1800s
-			// 2: 60 minutes = 60 * 60 = 3600s
-			if (mode_KeyB_short != 0) {
-				if (!f_KeyB_TIME_OUT) {
-					count_one_sec++;
+		if (f_10ms_Trig) {// every 10ms
+			f_10ms_Trig = 0;
 
-					if (100 == count_one_sec) {// one second
-						count_one_sec = 0;
+			// 30 mins = 30*60s = 1800s = 1800*100*10ms
+			count_one_sec++;
 
-						// N second
-			            count_l++;
-			            
-			            if (100 == count_l) {
-			                count_l = 0;
-			                count_h++;
-			                if (100 == count_h)
-			                    count_h = 0;
-						}
-					}
+			if (100 == count_one_sec) {// 100*10ms = 1 second
+				count_one_sec = 0;
 
-					if (2 == mode_KeyB_short) {
-						if ((0 == count_l) && (18 == count_h)) {
-							f_KeyB_TIME_OUT = 1;
-						}
-					} else if (3 == mode_KeyB_short) {
-						if ((0 == count_l) && (36 == count_h)) {
-							f_KeyB_TIME_OUT = 1;
-						}
-					}
-				}
-			}
-
-			// step1: last InA = 1(normal volt level)
-			// step5: last InA = 0
-			// step7: last InA = 0
-
-			// step5~: last InA = 1
-			A	=	(GPCC ^ Key_Flag) & _FIELD(p_In7X);
-			// step2: Start Push Button -> !ZF Active
-			// step6 / step4~: Button Non-Releasing -> !ZF Non-Active
-			// step8 / step6~: Start Release Button -> !ZF Active
-			if (! ZF)
-			{
-				// Button Down
-				if (!GPCC.6) {// step3: InA = 0 for 550ms or step3~: InA = 0 for 5ms(short press case)
-					if (--debounce_time_KeyA_long == 0)
-					{
-						Key_Flag	^=	_FIELD(p_InA);// step4: update InA = 0
-						f_KeyA_Long_Trig	=	1;
-
-						if (f_KeyA_TUNE_ADD) {
-							f_KeyA_TUNE_ADD = 0;// 2nd long press: duty_ratio = duty_ratio - 1
-						} else {
-							f_KeyA_TUNE_ADD = 1;// 1st long press: duty_ratio = duty_ratio + 1
-						}
-
-						debounce_time_KeyA_long	=	55;
-					}
-				} else {// Button Up
-					f_KeyA_Long_Trig = 0;
-					Key_Flag	^=	_FIELD(p_InA);// step9: update InA = 1
-				}
-			} else {
-				if (debounce_time_KeyA_long < 50) {
-					f_KeyA_Short_Trig = 1;// step7~: no need to update InA
-				}
-				debounce_time_KeyA_long	=	55;
-			}
-
-			A	=	(PA ^ Key_Flag) & _FIELD(p_InB);
-			if (! ZF)
-			{
-				// Button Down
-				if (!p_InB) {
-					if (--debounce_time_KeyB_long == 0)
-					{
-						Key_Flag	^=	_FIELD(p_InB);
-						f_KeyB_Long_Trig	=	1;
-						debounce_time_KeyB_long	=	55;
-					}
-				} else {// Button Up
-					Key_Flag	^=	_FIELD(p_InB);
-				}
-			} else {
-				if (debounce_time_KeyB_long < 50) {
-					f_KeyB_Short_Trig = 1;
-				}
-				debounce_time_KeyB_long	=	55;
-
-			}
-
+				// L seconds
+				count_l++;
 			
-			if (f_KeyA_Switch_ON) {
-				if (!f_KeyA_Changing_END) {
-					if (50 == period_time_dutyratio_update) {
-						if (duty_ratio < 50) {
-							duty_ratio = duty_ratio + 1;
-							pwm_change();
-						} else {
-							f_KeyA_Changing_END = 1;
-						}
-					}
+				if (100 == count_l) {
+					count_l = 0;
+					// total time = (100*H + L) seconds
+					count_h++;
 
-					period_time_dutyratio_update--;
-
-					if (0 == period_time_dutyratio_update) {
-						period_time_dutyratio_update = 50;
+					if (100 == count_h) {
+						count_h = 0;
 					}
+				}
+			}
+
+			// 30 mins time out, NEXT to close all output
+			if ((0 == count_l) && (18 == count_h)) {
+				pwm_disable();
+
+				p_Out3 = 0;
+				p_Out5 = 0;
+				p_Out7 = 0;
+			}
+
+			A = (PA ^ Key_Flag) & _FIELD(p_In2);
+			if (!ZF) {
+				//ButtonDown
+				if (!p_In2) {
+					if (--debounce_time_In2 == 0) {
+						Key_Flag ^= _FIELD(p_In2);
+						f_In2_Trig = 1;
+						debounce_time_In2 = 4;
+					}
+				} else {//ButtonUp
+					f_In2_Trig = 0;
+					Key_Flag ^= _FIELD(p_In2);
 				}
 			} else {
-				if (!f_KeyA_Changing_END) {
-					if (50 == period_time_dutyratio_update) {
-						if (duty_ratio > 0) {
-							duty_ratio = duty_ratio - 1;
-							pwm_change();
-						} else {
-							f_KeyA_Changing_END = 1;
-						}
-					}
-
-					period_time_dutyratio_update--;
-
-					if (0 == period_time_dutyratio_update) {
-						period_time_dutyratio_update = 50;
-					}
-				}
-			}
-
-			if (f_KeyA_Short_Trig) {
-				f_KeyA_Short_Trig = 0;
-				period_time_dutyratio_update = 50;
-
-				if (f_KeyA_Switch_ON) {// ON->OFF
-					f_KeyA_Switch_ON = 0;
-					f_KeyA_Changing_END = 0;
-				} else {// OFF->ON
-					f_KeyA_Switch_ON = 1;
-					f_KeyA_Changing_END = 0;
-
-					pwm_setup();// Open PWM
-				}
-			}
-
-			if (f_KeyA_Long_Trig) {
-				if (f_KeyA_Switch_ON) {
-					if (50 == period_time_dutyratio_update) {
-						if (f_KeyA_TUNE_ADD) {
-							if (duty_ratio < 100) {
-								duty_ratio = duty_ratio + 1;
-								pwm_change();
-							}
-						} else {
-							if (duty_ratio > 5) {
-								duty_ratio = duty_ratio - 1;
-								pwm_change();
-							}
-						}
-					}
-
-					period_time_dutyratio_update--;
-
-					if (0 == period_time_dutyratio_update) {
-						period_time_dutyratio_update = 50;
-					}
-				}
-			}
-
-			if (f_KeyB_Short_Trig) {
-				f_KeyB_Short_Trig = 0;
-				mode_KeyB_short = mode_KeyB_short + 1;
-
-				if (3 == mode_KeyB_short) {
-					mode_KeyB_short = 0;
-				}
+				debounce_time_In2 = 4;
 
 			}
 
-			if (!f_KeyB_TIME_OUT) {
-				if (50 == period_time_dutyratio_update) {
-					if (duty_ratio > 0) {
-						duty_ratio = duty_ratio - 1;
-						pwm_change();
+			A = (GPCC ^ Key_Flag) & _FIELD(p_In6X);
+			if (!ZF) {
+				//ButtonDown
+				if (!GPCC.6) {
+					if (--debounce_time_In6 == 0) {
+						Key_Flag ^= _FIELD(p_In6X);
+						f_In6_Trig = 1;
+						debounce_time_In6 = 4;
 					}
+				} else {//ButtonUp
+					f_In6_Trig = 0;
+					Key_Flag ^= _FIELD(p_In6X);
+				}
+			} else {
+				debounce_time_In6 = 4;
+			}
+
+			if (f_In2_Trig) {
+				// to re-initialize idle-shutdown timer(30 mins)
+				count_l = 0;
+				count_h = 0;
+				count_one_sec = 0;
+
+				f_In2_Trig = 0;
+				f_In2_lock = ~f_In2_lock;
+			}
+
+			if (0 == f_In2_lock) {
+				if (f_In6_Trig) {
+					// to re-initialize idle-shutdown timer(30 mins)
+					count_l = 0;
+					count_h = 0;
+					count_one_sec = 0;
+
+					mode_In6 = (mode_In6++)%7;
+				}
+				if (mode_In6 != mode_In6_last) {
+					if (0 == mode_In6) {
+						p_Out3 = 0;
+						p_Out7 = 0;
+
+						duty_ratio = 30;
+						pwm_duty_set();
+						pwm_enable();	
+					} else if (1 == mode_In6) {
+						p_Out3 = 0;
+						p_Out7 = 0;
+
+						pwm_disable();
+						duty_ratio = 60;
+						pwm_duty_set();
+						pwm_enable();	
+					} else if (2 == mode_In6) {
+						pwm_disable();
+
+						p_Out3 = 0;
+						p_Out5 = 1;
+						p_Out7 = 0;
+					} else if (3 == mode_In6) {
+						p_Out3 = 0;
+						p_Out5 = 0;
+						p_Out7 = 0;// later pwm
+					} else if (4 == mode_In6) {
+						p_Out3 = 0;
+						p_Out5 = 0;
+						p_Out7 = 1;
+					} else if (5 == mode_In6) {
+						p_Out3 = 0;// later pwm
+						p_Out5 = 0;
+						p_Out7 = 0;
+					} else if (6 == mode_In6) {
+						p_Out3 = 1;
+						p_Out5 = 0;
+						p_Out7 = 0;
+					}
+
+					mode_In6_last = mode_In;
 				}
 
-				period_time_dutyratio_update--;
-
-				if (0 == period_time_dutyratio_update) {
-					period_time_dutyratio_update = 50;
-				}
 			}
 		}
 	}
@@ -288,69 +219,55 @@ void	FPPA0 (void)
 // Enable Timer2 PWM to 200Hz(5ms)
 void pwm_enable(void)
 {
-	tm2ct = 0x0;
-	// Duty Ratio = (K+1) / 256, K = tm2b
-	// Duty Ratio = (0+1) / 256 = 1 / 256
-	duty_reg = 0;
-	tm2b = duty_reg;// 0
+	// tm2ct=0x0;
+	// DutyRatio=(K+1)/256,K=tm2b
+	// DutyRatio=(0+1)/256=1/256
+	// duty_reg = 0;
+	// tm2b = duty_reg;//0
 
-	// PWM_HZ = SYSCLK / (256 * S1 * (S2+1))
-	// PWM_HZ = 8M / 256 (4 * (9+1)) = 195Hz
-	// PWM_HZ = 8M / 256 (4 * (8+1)) = 217Hz
-	tm2s = 0b001_01001;// SYSCLK=IHRC/2=8MHz, S1=4(tm2s[6:5]=1), S2=14(tm2s[4:0])
+	// PWM_HZ=SYSCLK/(256*S1*(S2+1))
+	// PWM_HZ=8M/256(4*(9+1))=195Hz
+	// PWM_HZ=8M/256(4*(8+1))=217Hz
+	tm2s=0b001_01001;//SYSCLK=IHRC/2=8MHz,S1=4(tm2s[6:5]=1),S2=14(tm2s[4:0])
+
+	tm2c=0b0001_1010;//CLK(=IHRC/2)|PA3|PWM|DisableInverse
 }
 
-void pwm_route_pa3(void)
-{
-	tm2c = 0b0001_1010;// CLK(=IHRC/2) | PA3 | PWM | Disable Inverse
-}
-
-void pwm_route_pa4(void)
-{
-	tm2c = 0b0001_1110;// CLK(=IHRC/2) | PA4 | PWM | Disable Inverse
-}
-
+// Disable Timer2 PWM
 void pwm_disable(void)
 {
-	tm2c = 0b0000_0000;// Disable Timer2 PWM
+	tm2c=0b0000_0000;
 }
 
-// Duty Ratio = (K+1) / 256, K = tm2b
-void pwm_change(void)
+// DutyRatio=(K+1)/256,K=tm2b
+void pwm_duty_set(void)
 {
-	BYTE odd_flag = 0;
-	BYTE i = duty_ratio;// duty_ratio range: 0 ~ 100
-
-	//tm2ct = 0x0;
+	tm2ct=0x0;
 
 	if (30 == duty_ratio) {
-		// (6+1) / 256 = 27.34%
-		// (7+1) / 256 = 31.25%
+		// (6+1)/256 = 27.34%
+		// (7+1)/256 = 31.25%
 		duty_reg = 7;
 		tm2b = duty_reg;
 	} else if (50 == duty_ratio) {
 		duty_reg = 127;
 		tm2b = duty_reg;
 	} else if (60 == duty_ratio) {
-		// (14+1) / 256 = 58.59%
-		// (7+1)  / 256 = 62.5%
+		// (14+1)/256 = 58.59%
+		// (7+1)/256  = 62.5%
 		duty_reg = 255;
 		tm2b = duty_reg;
 	}
-
-	//tm2s = 0b000_01111;// 15
-	//tm2s = 0b000_00111;// 7
-	//tm2c = 0b0001_1000;// CLK(=IHRC/2) | PA3 | Period | Disable Inverse
 }
 
 #if 0
-void	Interrupt (void)
+void	Interrupt(void)
 {
 	pushaf;
 
-	if (Intrq.T16)
-	{	//	T16 Trig
-		//	User can add code
+	if(Intrq.T16)
+	{	//	T16Trig
+		//	Usercanaddcode
 		Intrq.T16	=	0;
 		//...
 	}
