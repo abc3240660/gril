@@ -130,6 +130,9 @@ void FPPA0(void)
 				p_Out3 = 0;
 				p_Out5 = 0;
 				p_Out7 = 0;
+
+				f_In3_value = 0;
+				f_In7_value = 0;
 			}
 
 			A = (PA ^ Key_Flag) & _FIELD(p_In2);
@@ -198,12 +201,18 @@ void FPPA0(void)
 						p_Out3 = 0;
 						p_Out7 = 0;
 
+						f_In3_value = 0;
+						f_In7_value = 0;
+
 						duty_ratio = 30;
 						pwm_duty_set();
 						pwm_enable();	
 					} else if (1 == mode_In6) {
 						p_Out3 = 0;
 						p_Out7 = 0;
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 
 						pwm_disable();
 						duty_ratio = 60;
@@ -215,22 +224,37 @@ void FPPA0(void)
 						p_Out3 = 0;
 						p_Out5 = 1;
 						p_Out7 = 0;
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 					} else if (3 == mode_In6) {
 						p_Out3 = 0;
 						p_Out5 = 0;
 						p_Out7 = 0;// later pwm
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 					} else if (4 == mode_In6) {
 						p_Out3 = 0;
 						p_Out5 = 0;
 						p_Out7 = 1;
+
+						f_In3_value = 0;
+						f_In7_value = 1;
 					} else if (5 == mode_In6) {
 						p_Out3 = 0;// later pwm
 						p_Out5 = 0;
 						p_Out7 = 0;
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 					} else if (6 == mode_In6) {
 						p_Out3 = 1;
 						p_Out5 = 0;
 						p_Out7 = 0;
+
+						f_In3_value = 1;
+						f_In7_value = 0;
 					}
 
 					mode_In6_last = mode_In6;
