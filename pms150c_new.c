@@ -10,7 +10,7 @@ static void pwm_duty_set(void);
 
 BIT p_In2	:	PA.7;
 BIT p_In6	:	PA.4;
-BIT p_In6X	:	PA.6;// just for update flag
+//BIT p_In6X	:	PA.6;// just for update flag
 
 BIT p_Out3	:	PA.6;
 BIT p_Out5	:	PA.3;
@@ -38,7 +38,7 @@ void FPPA0(void)
 	duty_ratio = 0;
 
 	BYTE	Key_Flag;
-	Key_Flag = _FIELD(p_In2, p_In6X);
+	Key_Flag = _FIELD(p_In2/*, p_In6X*/);
 
 	BYTE	Sys_Flag = 0;
 	BIT	f_5ms_Trig	:	Sys_Flag.0;
@@ -48,6 +48,7 @@ void FPPA0(void)
 	BIT	f_In2_lock	:	Sys_Flag.4;
 	BIT	f_In3_value	:	Sys_Flag.5;
 	BIT	f_In7_value	:	Sys_Flag.6;
+	BIT	f_cmptor_valid	:	Sys_Flag.7;
 
 
 	// 0~7 : A~H
@@ -153,18 +154,17 @@ void FPPA0(void)
 
 			}
 
-			A = (GPCC ^ Key_Flag) & _FIELD(p_In6X);
-			if (!ZF) {
+			if (((f_cmptor_valid == 0) && (GPCC.6)) || ((f_cmptor_valid == 1) && (!GPCC.6))) {
 				//ButtonDown
-				if (!GPCC.6) {
+				if (GPCC.6) {// PA4 > Vinternal R ---> GPCC.6=1
 					if (--debounce_time_In6 == 0) {
-						Key_Flag ^= _FIELD(p_In6X);
+						f_cmptor_valid = 1;
 						f_In6_Trig = 1;
 						debounce_time_In6 = 4;
 					}
 				} else {//ButtonUp
 					f_In6_Trig = 0;
-					Key_Flag ^= _FIELD(p_In6X);
+					f_cmptor_valid = 0;
 				}
 			} else {
 				debounce_time_In6 = 4;
