@@ -19,12 +19,13 @@ typedef struct reg_ack {
 
 #define CMD_DEV_ACK		"Re"// DEV ACK
 
-#define CMD_DEV_REGISTER	"R0"// SVR ACK
-#define CMD_HEART_BEAT		"H0"// SVR ACK
-#define CMD_INQUIRE_PARAM	"C0"// SVR CMD
-#define CMD_RING_ALARM		"R1"// SVR CMD
-#define CMD_DOOR_OPEN		"O0"// SVR CMD
-#define CMD_DOOR_CLOSE		"C1"// SVR CMD
+#define CMD_DEV_REGISTER	"R0"// DEV CMD
+#define CMD_HEART_BEAT		"H0"// DEV CMD
+#define CMD_INQUIRE_PARAM	"C0"// DEV ACK
+#define CMD_RING_ALARM		"R1"// DEV ACK
+#define CMD_DOOR_OPEN		"O0"// DEV ACK
+#define CMD_DOOR_CLOSE		"C1"// DEV CMD
+#define CMD_JUMP_LAMP		"S2"// DEV ACK
 
 #define LEN_SYS_TIME	32
 #define LEN_IMEI_NO	32
@@ -42,6 +43,7 @@ enum CMD_TYPE {
 	RING_ALARM,
 	DOOR_OPEN,
 	DOOR_CLOSE,
+	JUMP_LAMP,
 	UNKNOWN_CMD
 };
 
@@ -52,6 +54,7 @@ const char* cmd_list[] = {
 	CMD_RING_ALARM,
 	CMD_DOOR_OPEN,
 	CMD_DOOR_CLOSE,
+	CMD_JUMP_LAMP,
 	NULL
 };
 
@@ -59,6 +62,7 @@ char sync_sys_time[LEN_SYS_TIME+1] = "";
 
 int door_state = 0;
 int ring_times = 0;
+int lamp_times = 0;
 int lock_state = 0;
 int hbeat_time = 0;
 char bat_vol[LEN_BAT_VOL] = "88";// defaut is fake
@@ -108,12 +112,23 @@ void do_door_open(char* send)
 }
 
 // DEV ACK
-void do_door_close(char* send)
+void do_jump_lamp(char* send)
 {
 	// FuncCall TBD
 
 	memset(send, 0, LEN_MAX_SEND);
-	sprintf(send, "%s,%s,%s,%s,%s,%d\n", PROTOCOL_HEAD, DEV_TAG, imei, CMD_DEV_ACK, CMD_DOOR_CLOSE, door_state);
+	sprintf(send, "%s,%s,%s,%s,%s\n", PROTOCOL_HEAD, DEV_TAG, imei, CMD_DEV_ACK, CMD_JUMP_LAMP);
+
+	printf("SEND:%s\n", send);
+}
+
+// DEV ACK
+void do_ring_alarm(char* send)
+{
+	// FuncCall TBD
+
+	memset(send, 0, LEN_MAX_SEND);
+	sprintf(send, "%s,%s,%s,%s,%s\n", PROTOCOL_HEAD, DEV_TAG, imei, CMD_DEV_ACK, CMD_RING_ALARM);
 
 	printf("SEND:%s\n", send);
 }
@@ -139,6 +154,8 @@ void parse_msg(char* msg, char* send)
 #ifdef DEBUG_USE
 		//printf("split_str = %s\n", split_str);
 #endif
+		// index = 3: SVR CMD
+		// index = 4: SVR ACK
 		if ((3 == index) || (4 == index)) {
 			if (UNKNOWN_CMD == cmd_type) {
 				cmd_type = is_supported_cmd(cmd_count, split_str);
@@ -150,8 +167,6 @@ void parse_msg(char* msg, char* send)
 				} else {
 					if (DOOR_OPEN == cmd_type) {
 						do_door_open(send);
-					} else if (DOOR_OPEN == cmd_type) {
-						do_door_close(send);
 					}
 				}
 			}
@@ -172,7 +187,11 @@ void parse_msg(char* msg, char* send)
 			} else if (RING_ALARM == cmd_type) {
 				ring_times = atoi(split_str);
 				printf("ring_times = %d\n", ring_times);
-				// FuncCall TBD
+				do_ring_alarm(send);
+			} else if (JUMP_LAMP == cmd_type) {
+				lamp_times = atoi(split_str);
+				printf("lamp_times = %d\n", lamp_times);
+				do_jump_lamp(send);
 			}
 		}
 		split_str = strtok(NULL, delims);
@@ -194,6 +213,17 @@ void do_heart_beat(char* send)
 {
 	memset(send, 0, LEN_MAX_SEND);
 	sprintf(send, "%s,%s,%s,%s,%s,%d,%s,%s\n", PROTOCOL_HEAD, DEV_TAG, imei, CMD_HEART_BEAT, dev_time, lock_state, rssi, bat_vol);
+
+	printf("SEND:%s\n", send);
+}
+
+// DEV Auto SEND
+void do_door_close(char* send)
+{
+	// FuncCall TBD
+
+	memset(send, 0, LEN_MAX_SEND);
+	sprintf(send, "%s,%s,%s,%s\n", PROTOCOL_HEAD, DEV_TAG, imei, CMD_DOOR_CLOSE);
 
 	printf("SEND:%s\n", send);
 }
