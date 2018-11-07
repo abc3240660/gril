@@ -10,7 +10,7 @@ static void pwm_duty_set(void);
 
 BIT p_In2	:	PA.7;
 BIT p_In6	:	PA.4;
-BIT p_In6X	:	PA.6;// just for update flag
+//BIT p_In6X	:	PA.6;// just for update flag
 
 BIT p_Out3	:	PA.6;
 BIT p_Out5	:	PA.3;
@@ -38,7 +38,7 @@ void FPPA0(void)
 	duty_ratio = 0;
 
 	BYTE	Key_Flag;
-	Key_Flag = _FIELD(p_In2, p_In6X);
+	Key_Flag = _FIELD(p_In2/*, p_In6X*/);
 
 	BYTE	Sys_Flag = 0;
 	BIT	f_5ms_Trig	:	Sys_Flag.0;
@@ -48,6 +48,7 @@ void FPPA0(void)
 	BIT	f_In2_lock	:	Sys_Flag.4;
 	BIT	f_In3_value	:	Sys_Flag.5;
 	BIT	f_In7_value	:	Sys_Flag.6;
+	BIT	f_cmptor_valid	:	Sys_Flag.7;
 
 
 	// 0~7 : A~H
@@ -130,6 +131,9 @@ void FPPA0(void)
 				p_Out3 = 0;
 				p_Out5 = 0;
 				p_Out7 = 0;
+
+				f_In3_value = 0;
+				f_In7_value = 0;
 			}
 
 			A = (PA ^ Key_Flag) & _FIELD(p_In2);
@@ -150,18 +154,17 @@ void FPPA0(void)
 
 			}
 
-			A = (GPCC ^ Key_Flag) & _FIELD(p_In6X);
-			if (!ZF) {
+			if (((f_cmptor_valid == 0) && (GPCC.6)) || ((f_cmptor_valid == 1) && (!GPCC.6))) {
 				//ButtonDown
-				if (!GPCC.6) {
+				if (GPCC.6) {// PA4 > Vinternal R ---> GPCC.6=1
 					if (--debounce_time_In6 == 0) {
-						Key_Flag ^= _FIELD(p_In6X);
+						f_cmptor_valid = 1;
 						f_In6_Trig = 1;
 						debounce_time_In6 = 4;
 					}
 				} else {//ButtonUp
 					f_In6_Trig = 0;
-					Key_Flag ^= _FIELD(p_In6X);
+					f_cmptor_valid = 0;
 				}
 			} else {
 				debounce_time_In6 = 4;
@@ -198,12 +201,18 @@ void FPPA0(void)
 						p_Out3 = 0;
 						p_Out7 = 0;
 
+						f_In3_value = 0;
+						f_In7_value = 0;
+
 						duty_ratio = 30;
 						pwm_duty_set();
 						pwm_enable();	
 					} else if (1 == mode_In6) {
 						p_Out3 = 0;
 						p_Out7 = 0;
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 
 						pwm_disable();
 						duty_ratio = 60;
@@ -215,22 +224,37 @@ void FPPA0(void)
 						p_Out3 = 0;
 						p_Out5 = 1;
 						p_Out7 = 0;
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 					} else if (3 == mode_In6) {
 						p_Out3 = 0;
 						p_Out5 = 0;
 						p_Out7 = 0;// later pwm
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 					} else if (4 == mode_In6) {
 						p_Out3 = 0;
 						p_Out5 = 0;
 						p_Out7 = 1;
+
+						f_In3_value = 0;
+						f_In7_value = 1;
 					} else if (5 == mode_In6) {
 						p_Out3 = 0;// later pwm
 						p_Out5 = 0;
 						p_Out7 = 0;
+
+						f_In3_value = 0;
+						f_In7_value = 0;
 					} else if (6 == mode_In6) {
 						p_Out3 = 1;
 						p_Out5 = 0;
 						p_Out7 = 0;
+
+						f_In3_value = 1;
+						f_In7_value = 0;
 					}
 
 					mode_In6_last = mode_In6;
@@ -251,9 +275,9 @@ void pwm_enable(void)
 	// tm2b = duty_reg;//0
 
 	// PWM_HZ=SYSCLK/(256*S1*(S2+1))
-	// PWM_HZ=8M/256(4*(9+1))=195Hz
-	// PWM_HZ=8M/256(4*(8+1))=217Hz
-	tm2s=0b001_01001;//SYSCLK=IHRC/2=8MHz,S1=4(tm2s[6:5]=1),S2=14(tm2s[4:0])
+	// PWM_HZ=8M/256*(16*(9+1))=195Hz
+	// PWM_HZ=8M/256*(16*(8+1))=217Hz
+	tm2s=0b010_01001;//SYSCLK=IHRC/2=8MHz,S1=16(tm2s[6:5]=10),S2=9(tm2s[4:0])
 
 	tm2c=0b0001_1010;//CLK(=IHRC/2)|PA3|PWM|DisableInverse
 }
@@ -270,17 +294,17 @@ void pwm_duty_set(void)
 	tm2ct=0x0;
 
 	if (30 == duty_ratio) {
-		// (6+1)/256 = 27.34%
-		// (7+1)/256 = 31.25%
-		duty_reg = 7;
+		// (75+1)/256 = 29.69%
+		// (76+1)/256 = 30.08%
+		duty_reg = 76;
 		tm2b = duty_reg;
 	} else if (50 == duty_ratio) {
 		duty_reg = 127;
 		tm2b = duty_reg;
 	} else if (60 == duty_ratio) {
-		// (14+1)/256 = 58.59%
-		// (7+1)/256  = 62.5%
-		duty_reg = 255;
+		// (152+1)/256 = 59.77%
+		// (153+1)/256 = 60.16%
+		duty_reg = 153;
 		tm2b = duty_reg;
 	}
 }
