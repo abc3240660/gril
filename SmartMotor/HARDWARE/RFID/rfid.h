@@ -2,6 +2,9 @@
 
 #define RFID_READ_H
 
+#include "sys.h"
+#include "stdio.h"
+
 #define RFID_MAX_BUF_SIZE 64
 #define RFID_HEADER_SIZE 3
 #define SERIAL_NUM_SIZE 16
@@ -16,9 +19,9 @@ typedef enum _RET_RFID {
 	RET_RFID_RECV_TIM_OUT   = -5
 } RET_RFID;
 
-extern u8 calypso_serial_num[SERIAL_NUM_SIZE];
+extern u8 calypso_serial_num[SERIAL_NUM_SIZE+1];
 extern u8 calypso_card_id[CARD_ID_SIZE+1];
 
-extern RET_RFID cpr74_read_calypso();
+extern RET_RFID cpr74_read_calypso(void);
 
 #endif // RFID_READ_H

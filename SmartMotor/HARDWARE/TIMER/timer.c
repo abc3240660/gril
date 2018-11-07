@@ -212,18 +212,18 @@ void TIM9_CH2_PWM_Init(u16 arr,u16 psc)
 	
 	TIM_Cmd(TIM9, ENABLE);
 }  
-extern vu16 USART5_RX_STA;
+extern vu16 UART5_RX_STA;
 void TIM6_DAC_IRQHandler(void)
 { 		
 	u8 i = 0;
 	OSIntEnter();    		    
 	if(TIM_GetITStatus(TIM6,TIM_IT_Update)==SET)
 	{ 
-		USART5_RX_STA|=1<<15;
-		USART5_RX_BUF[USART5_RX_STA&0X7FFF]=0;
+		UART5_RX_STA|=1<<15;
+		UART5_RX_BUF[UART5_RX_STA&0X7FFF]=0;
 		printf("RFID RECVED:");
-		for (i=0; i<(USART5_RX_STA&0X7FFF); i++) {
-			printf("%X ", USART5_RX_BUF[i]);
+		for (i=0; i<(UART5_RX_STA&0X7FFF); i++) {
+			printf("%.2X ", UART5_RX_BUF[i]);
 		}
 		printf("\n");
 		TIM_ClearITPendingBit(TIM6,TIM_IT_Update);

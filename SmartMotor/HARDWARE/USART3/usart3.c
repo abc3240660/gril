@@ -43,9 +43,6 @@ void USART3_IRQHandler(void)
 				USART3_RX_STA|=1<<15;				//强制标记接收完成
 			} 
 		} else {
-			LED1 = 0;
-			LED2 = 0;
-			
 			if (USART3_RX_STA_BAK >= USART3_MAX_RECV_LEN) {
 				USART3_RX_STA_BAK = 0;
 			}

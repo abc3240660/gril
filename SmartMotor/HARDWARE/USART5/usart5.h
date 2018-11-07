@@ -1,5 +1,5 @@
-#ifndef __USART5_H
-#define __USART5_H 
+#ifndef __UART5_H
+#define __UART5_H 
 #include "sys.h"
 #include "stdio.h"	  
 //////////////////////////////////////////////////////////////////////////////////	   
@@ -18,16 +18,16 @@
 //无
 ////////////////////////////////////////////////////////////////////////////////// 	
 
-#define USART5_MAX_RECV_LEN		400					//最大接收缓存字节数
-#define USART5_MAX_SEND_LEN		400					//最大发送缓存字节数
-#define USART5_RX_EN 			1					//0,不接收;1,接收.
+#define UART5_MAX_RECV_LEN		400					//最大接收缓存字节数
+#define UART5_MAX_SEND_LEN		400					//最大发送缓存字节数
+#define UART5_RX_EN 			1					//0,不接收;1,接收.
 
-extern u8  USART5_RX_BUF[USART5_MAX_RECV_LEN]; 		//接收缓冲,最大USART5_MAX_RECV_LEN字节
-extern u8  USART5_TX_BUF[USART5_MAX_SEND_LEN]; 		//发送缓冲,最大USART5_MAX_SEND_LEN字节
-extern vu16 USART5_RX_STA;   						//接收数据状态
+extern u8  UART5_RX_BUF[UART5_MAX_RECV_LEN]; 		//接收缓冲,最大UART5_MAX_RECV_LEN字节
+extern u8  UART5_TX_BUF[UART5_MAX_SEND_LEN]; 		//发送缓冲,最大UART5_MAX_SEND_LEN字节
+extern vu16 UART5_RX_STA;   						//接收数据状态
 
-extern u8  USART5_RX_BUF_BAK[USART5_MAX_RECV_LEN];
-extern vu16 USART5_RX_STA_BAK;
+extern u8  UART5_RX_BUF_BAK[UART5_MAX_RECV_LEN];
+extern vu16 UART5_RX_STA_BAK;
 
 void usart5_init(u32 bound);
 void u5_printf(char* fmt,...);

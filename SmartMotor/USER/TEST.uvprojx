@@ -365,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_USB_OTG_FS,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USMART;..\HARDWARE\LED;..\HARDWARE\BEEP;..\HARDWARE\KEY;..\HARDWARE\EXTI;..\HARDWARE\WDG;..\HARDWARE\TIMER;..\HARDWARE\TPAD;..\HARDWARE\OLED;..\HARDWARE\LCD;..\HARDWARE\RTC;..\HARDWARE\RNG;..\HARDWARE\WKUP;..\HARDWARE\ADC;..\HARDWARE\LSENS;..\HARDWARE\DAC;..\HARDWARE\DMA;..\HARDWARE\24CXX;..\HARDWARE\SPI;..\HARDWARE\W25QXX;..\HARDWARE\RS485;..\HARDWARE\CAN;..\HARDWARE\TOUCH;..\HARDWARE\REMOTE;..\HARDWARE\DS18B20;..\HARDWARE\DHT11;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\NRF24L01;..\HARDWARE\STMFLASH;..\HARDWARE\DCMI;..\HARDWARE\OV2640;..\HARDWARE\USART3;..\HARDWARE\SRAM;..\HARDWARE\SDIO;..\HARDWARE\SPBLCD;..\HARDWARE\I2S;..\HARDWARE\WM8978;..\HARDWARE\SIM900A;..\HARDWARE\ETHERNET;..\MALLOC;..\FATFS\src;..\FATFS\exfuns;..\TEXT;..\PICTURE;..\UCOSII\CORE;..\UCOSII\PORT;..\UCOSII\CONFIG;..\APP;..\GUI;..\USB\STM32_USB_Device_Library\Core\inc;..\USB\STM32_USB_Device_Library\Class\msc\inc;..\USB\STM32_USB_HOST_Library\Core\inc;..\USB\STM32_USB_HOST_Library\Class\HID\inc;..\USB\STM32_USB_HOST_Library\Class\MSC\inc;..\USB\STM32_USB_OTG_Driver\inc;..\USB\USB_APP;..\AUDIOCODEC\ape;..\AUDIOCODEC\ape\apedec;..\AUDIOCODEC\flac;..\AUDIOCODEC\flac\flacdec;..\AUDIOCODEC\mp3;..\AUDIOCODEC\mp3\helix;..\AUDIOCODEC\wav;..\MJPEG;..\MJPEG\JPEG;..\NES;..\T9INPUT;..\ATKNCR;..\LWIP;..\LWIP\arch;..\LWIP\lwip-1.4.1\src\include;..\LWIP\lwip-1.4.1\src\include\ipv4;..\LWIP\lwip-1.4.1\src\include\lwip;..\LWIP\lwip-1.4.1\src\include\netif;..\LWIP\lwip_app\lwip_comm;..\LWIP\lwip_app\tcp_client_demo;..\LWIP\lwip_app\tcp_server_demo;..\LWIP\lwip_app\udp_demo;..\LWIP\lwip_app\web_server_demo;..\FWLIB\inc;..\USER;..\CORE;..\HARDWARE\VS10XX;..\HARDWARE\XFS5152;..\HARDWARE\Tiky_LCD</IncludePath>
+              <IncludePath>..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HARDWARE\LED;..\HARDWARE\BEEP;..\HARDWARE\KEY;..\HARDWARE\EXTI;..\HARDWARE\WDG;..\HARDWARE\TIMER;..\HARDWARE\RTC;..\HARDWARE\WKUP;..\HARDWARE\DMA;..\HARDWARE\SPI;..\HARDWARE\W25QXX;..\HARDWARE\CAN;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\USART3;..\HARDWARE\SRAM;..\HARDWARE\SDIO;..\HARDWARE\SIM900A;..\MALLOC;..\FATFS\src;..\FATFS\exfuns;..\UCOSII\CORE;..\UCOSII\PORT;..\UCOSII\CONFIG;..\FWLIB\inc;..\USER;..\CORE;..\HARDWARE\VS10XX;..\HARDWARE\USART5;..\HARDWARE\RFID</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -482,6 +482,26 @@
               <FileName>sim900a.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\SIM900A\sim900a.c</FilePath>
+            </File>
+            <File>
+              <FileName>can2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CAN\can2.c</FilePath>
+            </File>
+            <File>
+              <FileName>can1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CAN\can1.c</FilePath>
+            </File>
+            <File>
+              <FileName>usart5.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\USART5\usart5.c</FilePath>
+            </File>
+            <File>
+              <FileName>rfid.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\RFID\rfid.c</FilePath>
             </File>
           </Files>
         </Group>

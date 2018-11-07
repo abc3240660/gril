@@ -1,17 +1,18 @@
-#include "cpr74.h"
+#include "rfid.h"
 #include "usart5.h" 
+#include "delay.h"
 
 u8 cpr74_recv_size = 0;
-u8 cpr74_send_buf[MAX_BUF_SIZE_RFID] = "";
+u8 cpr74_send_buf[RFID_MAX_BUF_SIZE+1] = "";
 u8 calypso_serial_num[SERIAL_NUM_SIZE+1] = "";
 u8 calypso_card_id[CARD_ID_SIZE+1] = "";
-static u8 pGotVal = NULL;
+u8* pGotVal = NULL;
 
 static u16 cpr74_crc16_calc(u8* dat, u8 len)
 {
 	u8 i = 0;
 	u8 j = 0;
-	u8 crc = 0xFFFF;
+	u16 crc = 0xFFFF;
 
 	for (i=0; i<len; i++) {
 		crc ^= dat[i];
@@ -51,11 +52,11 @@ static void cpr74_parse_ack(u8 bit_pos, u8 bit_len)
 	u8 bit_cnt = 0;
 	u8 tmp_val = 0;
 
-	for (i=0; i<recv_size; i++) {
+	for (i=0; i<(UART5_RX_STA&0X7FFF); i++) {
 		for (j=0; j<8; j++) {
 			if (bit_pos <= (i*8 + j + 1)) {
 				offset = 7 - ((bit_pos+bit_cnt-1)%8);
-				tmp_val += ((recv_buf[i]>>offset)&0x01) << (3-bit_cnt%4);
+				tmp_val += ((UART5_RX_BUF[i]>>offset)&0x01) << (3-bit_cnt%4);
 				bit_cnt++;
 				if (0 == (bit_cnt%4)) {
 					if (pGotVal != NULL) {
@@ -83,13 +84,13 @@ static RET_RFID cpr74_check_ack(void)
 	u8 data_len = 0;
 	RET_RFID ret = RET_RFID_OK;
 
-	if (USART5_RX_STA&0X8000) {
-		if (USART5_RX_BUF[0] != 0x02) {// Header Check
+	if (UART5_RX_STA&0X8000) {
+		if (UART5_RX_BUF[0] != 0x02) {// Header Check
 			ret = RET_RFID_RECV_DAT_VALID;
 		} else {
-			data_len = (USART5_RX_BUF[1] << 8) + USART5_RX_BUF[2];
+			data_len = (UART5_RX_BUF[1] << 8) + UART5_RX_BUF[2];
 
-			if (data_len != (USART5_RX_STA&0X7FFF)) {// Length Check
+			if (data_len != (UART5_RX_STA&0X7FFF)) {// Length Check
 				ret = RET_RFID_RECV_LEN_VALID;
 			}
 		}
@@ -100,20 +101,21 @@ static RET_RFID cpr74_check_ack(void)
 
 static RET_RFID cpr74_send_cmd(u8 *cmd, u8 len, u16 waittime)
 {
+	u8 i = 0;
 	RET_RFID ret = RET_RFID_OK;
 
-	USART5_RX_STA = 0;
+	UART5_RX_STA = 0;
 
 	for (i=0; i<len; i++) {
-		while((USART5->SR&0X40) == 0);
-		USART5->DR = cmd[i];
+		while((UART5->SR&0X40) == 0);
+		UART5->DR = cmd[i];
 	}
 
 	if (waittime) {
 		while (--waittime) {
 			delay_ms(10);
-			if (USART5_RX_STA&0X8000) {// ACK RECVED
-				ret = cpr74_check_ack(ack);
+			if (UART5_RX_STA&0X8000) {// ACK RECVED
+				ret = cpr74_check_ack();
 				break;
 			} 
 		}
@@ -159,6 +161,7 @@ static RET_RFID cpr74_inventory()
 // RECV:02000D00B00002B3717000957E
 static RET_RFID cpr74_select_stage1()
 {
+	u8 i = 0;
 	u16 crc16 = 0;
 	RET_RFID ret = RET_RFID_OK;
 
@@ -245,7 +248,7 @@ static RET_RFID cpr74_apdu_stage1()
 	return ret;
 }
 
-RET_RFID cpr74_read_calypso()
+RET_RFID cpr74_read_calypso(void)
 {
 	RET_RFID ret = RET_RFID_OK;
 
@@ -253,7 +256,7 @@ RET_RFID cpr74_read_calypso()
 	if (ret != RET_RFID_OK) {
 		return ret;
 	}
-
+#if 0
 	ret = cpr74_select_stage1();
 	if (ret != RET_RFID_OK) {
 		return ret;
@@ -265,6 +268,6 @@ RET_RFID cpr74_read_calypso()
 	}
 #endif
 	ret = cpr74_apdu_stage1();
-
+#endif
 	return ret;
 }

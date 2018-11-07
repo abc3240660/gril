@@ -1,29 +1,12 @@
-#ifndef __SIM900A_H__
-#define __SIM900A_H__	 
+#ifndef __SIM7500E_H__
+#define __SIM7500E_H__	 
 #include "sys.h"
-//////////////////////////////////////////////////////////////////////////////////	   
-//本程序只供学习使用，未经作者许可，不得用于其它任何用途
-//ALIENTEK STM32F407开发板
-//SIM900A 初始化 
-//正点原子@ALIENTEK
-//技术论坛:www.openedv.com
-//创建日期:2014/8/1
-//版本：V1.1
-//版权所有，盗版必究。
-//Copyright(C) 广州市星翼电子科技有限公司 2014-2024
-//All rights reserved
-//********************************************************************************
-//修改说明
-//V1.1 20140810
-//1,新增__sim900dev结构体
-//2,修改sim900a_send_cmd函数,新增非预期结果返回
-////////////////////////////////////////////////////////////////////////////////// 	
- 
-#define SIM900_MAX_NEWMSG	10		//最大10条新消息
+
+#define SIM7500E_MAX_NEWMSG	10		//最大10条新消息
 
 typedef struct 
 {							  
- 	u8 status;		//SIM900A状态
+ 	u8 status;		//SIM7500EA状态
 					//bit7:0,没有找到模块;1,找到模块了
 					//bit6:0,SIM卡不正常;1,SIM卡正常
 					//bit5:0,未获得运营商名字;1,已获得运营商名字
@@ -44,14 +27,14 @@ typedef struct
 	u8 csq;			//信号质量
 	
 	vu8 newmsg;		//新消息条数,0,没有新消息;其他,新消息条数
-	u8 newmsgindex[SIM900_MAX_NEWMSG];//新短信在SIM卡内的索引,最长记录SIM900_MAX_NEWMSG条新短信
+	u8 newmsgindex[SIM7500E_MAX_NEWMSG];//新短信在SIM卡内的索引,最长记录SIM7500E_MAX_NEWMSG条新短信
 	u8 incallnum[20];//来电号码缓存区,最长20位
-}__sim900dev; 
+}__sim7500dev; 
 
-extern __sim900dev sim900dev;	//sim900控制器
+extern __sim7500dev sim7500dev;	//sim900控制器
 
 
-#define PROTOCOL_HEAD		"^MOBIT"
+#define PROTOCOL_HEAD	"^MOBIT"
 #define DEV_TAG			"ECAR"
 #define SW_VERSION		"V1.0"
 #define HW_VERSION		"V1.0"
@@ -61,7 +44,7 @@ extern __sim900dev sim900dev;	//sim900控制器
 #define CMD_DEV_REGISTER	"R0"// DEV CMD
 #define CMD_HEART_BEAT		"H0"// DEV CMD
 #define CMD_INQUIRE_PARAM	"C0"// DEV ACK
-#define CMD_RING_ALARM		"R1"// DEV ACK
+#define CMD_RING_ALARM		"R2"// DEV ACK
 #define CMD_DOOR_OPEN		"O0"// DEV ACK
 #define CMD_DOOR_CLOSE		"C1"// DEV CMD
 #define CMD_JUMP_LAMP		"S2"// DEV ACK
@@ -88,17 +71,17 @@ enum CMD_TYPE {
  
 #define swap16(x) (x&0XFF)<<8|(x&0XFF00)>>8		//高低字节交换宏定义
 
- 
+u8* sim7500e_check_cmd(u8 *str);
+u8 sim7500e_send_cmd(u8 *cmd,u8 *ack,u16 waittime);
+void sim7500e_cmd_over(void);
+u8 sim7500e_chr2hex(u8 chr);
+u8 sim7500e_hex2chr(u8 hex);
+void sim7500e_unigbk_exchange(u8 *src,u8 *dst,u8 mode);
+void sim7500e_cmsgin_check(void);
+void sim7500e_status_check(void);
+void sim7500e_tcp_connect(u8 mode,u8* ipaddr,u8* port);
 
-u8* sim900a_check_cmd(u8 *str);
-u8 sim900a_send_cmd(u8 *cmd,u8 *ack,u16 waittime);
-void sim900a_cmd_over(void);
-u8 sim900a_chr2hex(u8 chr);
-u8 sim900a_hex2chr(u8 hex);
-void sim900a_unigbk_exchange(u8 *src,u8 *dst,u8 mode);
-void sim900a_cmsgin_check(void);
-void sim900a_status_check(void);
-#endif
+#endif/* __SIM7500E_H__ */
 
 
 

@@ -2,7 +2,10 @@
 #include "malloc.h"
 #include "common.h"
 #include "usart3.h"
+#include "usart5.h"
 #include "sim900a.h"
+#include "can1.h"
+#include "can2.h"
 
 /////////////////////////UCOSII任务设置///////////////////////////////////
 //START 任务
@@ -49,13 +52,20 @@ void watch_task(void *pdata);
 //系统初始化
 void system_init(void)
 {
+	u8 CAN1_mode=0; //CAN工作模式;0,普通模式;1,环回模式
+	u8 CAN2_mode=0; //CAN工作模式;0,普通模式;1,环回模式	
+	
 	delay_init(168);			//延时初始化  
-	uart_init(9600);		//初始化串口波特率为115200
+	uart_init(115200);		//初始化串口波特率为115200
 	usart3_init(115200);		//初始化串口3波特率为115200
+	usart5_init(38400);
  	LED_Init();					//初始化LED 
 // 	KEY_Init();					//按键初始化 
 //	W25QXX_Init();				//初始化W25Q128
 
+	CAN1_Mode_Init(CAN1_mode);//CAN初始化普通模式,波特率250Kbps
+	CAN2_Mode_Init(CAN2_mode);//CAN初始化普通模式,波特率500Kbps 
+  
 	my_mem_init(SRAMIN);		//初始化内部内存池
 	my_mem_init(SRAMCCM);		//初始化CCM内存池 
 	
@@ -98,7 +108,9 @@ void main_task(void *pdata)
 //		sim900a_send_cmd("AT","OK",100);
 //		delay_ms(1000);
 //	}
-	sim900a_tcpudp_test(0,NULL,NULL);
+//	sim7500e_tcp_connect(0,NULL,NULL);
+	delay_ms(5000);
+	cpr74_read_calypso();
 }
 
 //执行最不需要时效性的代码
@@ -106,7 +118,7 @@ void usart_task(void *pdata)
 {	    
 	while(1)
 	{			  
-		if (0x08 == sim900dev.status&0x08) {
+		if (0x08 == sim7500dev.status&0x08) {
 			LED0=!LED0;
 		}
 //		printf("USART3_RX_STA_BAK = %d\n", USART3_RX_STA_BAK);
