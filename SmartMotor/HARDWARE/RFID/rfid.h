@@ -16,9 +16,9 @@ typedef enum _RET_RFID {
 	RET_RFID_RECV_TIM_OUT   = -5
 } RET_RFID;
 
-extern u8 serial_num[SERIAL_NUM_SIZE];
-extern u8 card_id[CARD_ID_SIZE+1];
+extern u8 calypso_serial_num[SERIAL_NUM_SIZE];
+extern u8 calypso_card_id[CARD_ID_SIZE+1];
 
-extern RET_RFID rfid_get_card_id();
+extern RET_RFID cpr74_read_calypso();
 
 #endif // RFID_READ_H

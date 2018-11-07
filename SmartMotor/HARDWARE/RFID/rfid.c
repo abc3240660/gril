@@ -3,9 +3,45 @@
 
 u8 cpr74_recv_size = 0;
 u8 cpr74_send_buf[MAX_BUF_SIZE_RFID] = "";
-u8 calypso_serial_num[SERIAL_NUM_SIZE] = "";
+u8 calypso_serial_num[SERIAL_NUM_SIZE+1] = "";
 u8 calypso_card_id[CARD_ID_SIZE+1] = "";
 static u8 pGotVal = NULL;
+
+static u16 cpr74_crc16_calc(u8* dat, u8 len)
+{
+	u8 i = 0;
+	u8 j = 0;
+	u8 crc = 0xFFFF;
+
+	for (i=0; i<len; i++) {
+		crc ^= dat[i];
+		for (j=0; j<8; j++) {
+			if (crc & 0x01)
+				crc = (crc >> 1) ^ 0x8408;
+			else
+				crc = crc >> 1;
+		}
+	}
+
+	printf("crc16 = 0x%.4X\n", crc);
+
+	return crc;
+}
+
+static u8 cpr74_chr2hex(u8 chr)
+{
+	if(chr>='0'&&chr<='9')return chr-'0';
+	if(chr>='A'&&chr<='F')return (chr-'A'+10);
+	if(chr>='a'&&chr<='f')return (chr-'a'+10); 
+	return 0;
+}
+
+static u8 cpr74_hex2chr(u8 hex)
+{
+	if(hex<=9)return hex+'0';
+	if(hex>=10&&hex<=15)return (hex-10+'A'); 
+	return '0';
+}
 
 static void cpr74_parse_ack(u8 bit_pos, u8 bit_len)
 {
@@ -123,6 +159,7 @@ static RET_RFID cpr74_inventory()
 // RECV:02000D00B00002B3717000957E
 static RET_RFID cpr74_select_stage1()
 {
+	u16 crc16 = 0;
 	RET_RFID ret = RET_RFID_OK;
 
 	cpr74_send_buf[0] = 0x02;
@@ -134,17 +171,14 @@ static RET_RFID cpr74_select_stage1()
 	cpr74_send_buf[6] = 0x21;
 
 	// serial number
-	cpr74_send_buf[7]  = 0x00;
-	cpr74_send_buf[8]  = 0x00;
-	cpr74_send_buf[9]  = 0x00;
-	cpr74_send_buf[10] = 0x00;
-	cpr74_send_buf[11] = 0x53;
-	cpr74_send_buf[12] = 0x51;
-	cpr74_send_buf[13] = 0x10;
-	cpr74_send_buf[14] = 0x71;
+	for (i=0; i<SERIAL_NUM_SIZE; i++) {
+		cpr74_send_buf[7+i]  = calypso_serial_num[i];
+	}
 
-	cpr74_send_buf[15] = 0x3E;
-	cpr74_send_buf[16] = 0x59;
+	crc16 = cpr74_crc16_calc(cpr74_send_buf, cpr74_send_buf[2]-2);
+
+	cpr74_send_buf[15] = (u8)crc16;
+	cpr74_send_buf[16] = (u8)(crc16>>8);
 
 	ret = cpr74_send_cmd(cpr74_send_buf, 0x11, 1000);
 	if (ret != RET_RFID_OK) {
@@ -224,12 +258,12 @@ RET_RFID cpr74_read_calypso()
 	if (ret != RET_RFID_OK) {
 		return ret;
 	}
-
+#if 0
 	ret = cpr74_select_stage2();
 	if (ret != RET_RFID_OK) {
 		return ret;
 	}
-
+#endif
 	ret = cpr74_apdu_stage1();
 
 	return ret;
