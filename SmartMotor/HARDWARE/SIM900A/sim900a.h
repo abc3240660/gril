@@ -48,6 +48,7 @@ extern __sim7500dev sim7500dev;	//sim900¿ØÖÆÆ÷
 #define CMD_DOOR_OPEN		"O0"// DEV ACK
 #define CMD_DOOR_CLOSE		"C1"// DEV CMD
 #define CMD_JUMP_LAMP		"S2"// DEV ACK
+#define CMD_CALYPSO_UPLOAD	"C3"// DEV CMD
 
 #define LEN_SYS_TIME	32
 #define LEN_IMEI_NO	32
@@ -66,6 +67,7 @@ enum CMD_TYPE {
 	DOOR_OPEN,
 	DOOR_CLOSE,
 	JUMP_LAMP,
+	CALYPSO_UPLOAD,
 	UNKNOWN_CMD
 };
  

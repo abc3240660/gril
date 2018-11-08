@@ -8,6 +8,7 @@
 #include "ff.h" 
 #include "ucos_ii.h" 
 #include "can1.h"
+#include "rfid.h"
 
 __sim7500dev sim7500dev;	//sim7500¿ØÖÆÆ÷
 
@@ -19,6 +20,7 @@ const char* cmd_list[] = {
 	CMD_DOOR_OPEN,
 	CMD_DOOR_CLOSE,
 	CMD_JUMP_LAMP,
+	CMD_CALYPSO_UPLOAD,
 	NULL
 };
 
@@ -226,6 +228,17 @@ void sim7500e_do_door_close(char* send)
 	sim7500e_tcp_send(send);
 }
 
+// DEV Auto SEND
+void sim7500e_do_calypso_upload(char* send)
+{
+	memset(send, 0, LEN_MAX_SEND);
+	sprintf(send, "%s,%s,%s,%s,%s\n", PROTOCOL_HEAD, DEV_TAG, imei, CMD_CALYPSO_UPLOAD, calypso_serial_num);
+
+	printf("SEND:%s\n", send);
+	
+	sim7500e_tcp_send(send);
+}
+
 void sim7500e_parse_msg(char* msg, char* send)
 {
 	int index = 0;
@@ -423,6 +436,11 @@ void sim7500e_tcp_connect(u8 mode,u8* ipaddr,u8* port)
 				sim7500e_parse_msg(recv_buf, send_buf);
 			}
 			USART3_RX_STA=0;
+		} else {
+			if (calypso_card_id[0] != 0) {
+				sim7500e_do_calypso_upload(send_buf);
+				calypso_card_id[0] = 0;
+			}
 		}
 		if(oldsta!=connectsta)
 		{

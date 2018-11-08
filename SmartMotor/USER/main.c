@@ -6,6 +6,7 @@
 #include "sim900a.h"
 #include "can1.h"
 #include "can2.h"
+#include "rfid.h"
 
 /////////////////////////UCOSII任务设置///////////////////////////////////
 //START 任务
@@ -108,21 +109,19 @@ void main_task(void *pdata)
 //		sim900a_send_cmd("AT","OK",100);
 //		delay_ms(1000);
 //	}
-//	sim7500e_tcp_connect(0,NULL,NULL);
-	delay_ms(5000);
-	cpr74_read_calypso();
+	sim7500e_tcp_connect(0,NULL,NULL);
+//	delay_ms(5000);
+//	cpr74_read_calypso();
 }
 
 //执行最不需要时效性的代码
 void usart_task(void *pdata)
-{	    
-	while(1)
-	{			  
-		if (0x08 == sim7500dev.status&0x08) {
-			LED0=!LED0;
-		}
-//		printf("USART3_RX_STA_BAK = %d\n", USART3_RX_STA_BAK);
-		delay_ms(1000);	 
+{	 
+	delay_ms(2000);
+	
+	while(1) {
+		delay_ms(3000);
+		cpr74_read_calypso();
 	}
 }
 
