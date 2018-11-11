@@ -191,6 +191,7 @@ void FPPA0(void)
 					count_h = 0;
 					count_one_sec = 0;
 
+					f_In6_Trig = 0;
 					mode_In6++;
 					if (7 == mode_In6) {
 						mode_In6 = 0;

@@ -64,6 +64,7 @@ void system_init(void)
 // 	KEY_Init();					//按键初始化 
 //	W25QXX_Init();				//初始化W25Q128
 
+	printf("SmartMotor Starting...\n");
 	CAN1_Mode_Init(CAN1_mode);//CAN初始化普通模式,波特率250Kbps
 	CAN2_Mode_Init(CAN2_mode);//CAN初始化普通模式,波特率500Kbps 
   
