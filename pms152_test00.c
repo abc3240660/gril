@@ -1,11 +1,16 @@
 #include	"extern.h"
 
-static BYTE duty_ratio;
+static BYTE duty_ratio_l;
+static BYTE duty_ratio_h;
+
 static WORD duty_reg;
 
-static void pwm_enable(void);
-static void pwm_disable(void);
-static void pwm_duty_set(void);
+static void pwmgg0_enable(void);
+static void pwmgg0_disable(void);
+static void pwmgg1_enable(void);
+static void pwmgg1_disable(void);
+static void pwmgg2_enable(void);
+static void pwmgg2_disable(void);
 
 BIT p_In2	:	PB.6;// Power Charge Input(0-charging, 1-non-charging)
 BIT p_In3	:	PB.7;// Cmptor Input(0-Valid, 1-Invalid)
@@ -19,7 +24,7 @@ BIT p_Out12	:	PB.0;// LED
 
 void FPPA0(void)
 {
-	.ADJUST_IC	SYSCLK = IHRC/2// SYSCLK = IHRC/2
+	.ADJUST_IC	SYSCLK = IHRC/2// SYSCLK = IHRC/2 = 8MHz
 
 	$ p_Out3	Out, Low;// off
 	$ p_Out5	Out, Low;// off
@@ -36,7 +41,7 @@ void FPPA0(void)
 	padier = 0b111_0_1111;// disable digital input for PA4
 
 	// Insert Initial Code
-	duty_ratio = 0;
+	duty_ratio_l = 0;
 
 	BYTE	Key_Flag;
 	Key_Flag = _FIELD(p_In2/*, p_In6X*/);
@@ -127,7 +132,7 @@ void FPPA0(void)
 
 			// 30 mins time out, NEXT to close all output
 			if ((0 == count_l) && (18 == count_h)) {
-				pwm_disable();
+				pwmg1_disable();
 
 				p_Out3 = 0;
 				p_Out5 = 0;
@@ -206,9 +211,9 @@ void FPPA0(void)
 						f_In3_value = 0;
 						f_In7_value = 0;
 
-						duty_ratio = 30;
-						pwm_duty_set();
-						pwm_enable();	
+						//duty_ratio = 30;
+						pwmg1_duty_set();
+						pwmg1_enable();	
 					} else if (1 == mode_In6) {
 						p_Out3 = 0;
 						p_Out7 = 0;
@@ -216,12 +221,12 @@ void FPPA0(void)
 						f_In3_value = 0;
 						f_In7_value = 0;
 
-						pwm_disable();
-						duty_ratio = 60;
-						pwm_duty_set();
-						pwm_enable();	
+						pwmg1_disable();
+						//duty_ratio = 60;
+						pwmg1_duty_set();
+						pwmg1_enable();	
 					} else if (2 == mode_In6) {
-						pwm_disable();
+						pwmg1_disable();
 
 						p_Out3 = 0;
 						p_Out5 = 1;
@@ -266,49 +271,82 @@ void FPPA0(void)
 		}
 	}
 }
-
-// Enable Timer2 PWM to 200Hz(5ms)
-void pwm_enable(void)
+// PWMG0/1/2 Share the same Freq but different duty ratio
+// Setting PWM's Freq to 100Hz
+// Fpwm_freq = Fpwm_clk / (CB + 1)
+void pwm_freq_set()
 {
-	// tm2ct=0x0;
-	// DutyRatio=(K+1)/256,K=tm2b
-	// DutyRatio=(0+1)/256=1/256
-	// duty_reg = 0;
-	// tm2b = duty_reg;//0
-
-	// PWM_HZ=SYSCLK/(256*S1*(S2+1))
-	// PWM_HZ=8M/256*(16*(9+1))=195Hz
-	// PWM_HZ=8M/256*(16*(8+1))=217Hz
-	tm2s=0b010_01001;//SYSCLK=IHRC/2=8MHz,S1=16(tm2s[6:5]=10),S2=9(tm2s[4:0])
-
-	tm2c=0b0001_1010;//CLK(=IHRC/2)|PA3|PWM|DisableInverse
+	pwmgcubl = 0b0000_0000;
+	pwmgcubh = 0b1001_1100;// CB = {pwmgcubh[7:0], pwmgcubl[7:6]} = 624
+	
+	//pwmgclk = 0b1111_0000;// Fpwm_clk = = SYSCLK / 128 -> Fpwm_freq = 100HZ
+    pwmgclk = 0b1110_0000;// Fpwm_clk = = SYSCLK / 64 -> Fpwm_freq = 200HZ
 }
 
-// Disable Timer2 PWM
-void pwm_disable(void)
+void duty_ratio_changing(void)
 {
-	tm2c=0b0000_0000;
+	duty_ratio_l++;
+	if (4 == duty_ratio_l) {
+		duty_ratio_l = 0;
+		duty_ratio_h++;
+		
+		if (256 == duty_ratio_h) {
+			duty_ratio_h = 0;
+		}
+	}	
 }
 
-// DutyRatio=(K+1)/256,K=tm2b
-void pwm_duty_set(void)
+// Enable PWMG0 Output with 50% duty ratio
+void pwmg0_enable(void)
 {
-	tm2ct=0x0;
+#if 0
+	pwmg0dtl = 0b0000_0000;// DB0 = pwmg0dtl[5] = 0
+	pwmg0dth = 0b0100_1110;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]} = 312
+#else
+	pwmg0dtl = duty_ratio_l;
+	pwmg0dth = duty_ratio_h;
+#endif
 
-	if (30 == duty_ratio) {
-		// (75+1)/256 = 29.69%
-		// (76+1)/256 = 30.08%
-		duty_reg = 76;
-		tm2b = duty_reg;
-	} else if (50 == duty_ratio) {
-		duty_reg = 127;
-		tm2b = duty_reg;
-	} else if (60 == duty_ratio) {
-		// (152+1)/256 = 59.77%
-		// (153+1)/256 = 60.16%
-		duty_reg = 153;
-		tm2b = duty_reg;
-	}
+	// Fpwm_duty = [DB10_1 + DB0*5 + 0.5] / (CB + 1) = 312.5 / 625 = 50%
+	pwmg0c = 0b0000_0110;// PA0 PWM
+}
+
+// Disable PWMG0
+void pwmg0_disable(void)
+{
+	pwmg0c = 0b0000_0000;// do not output PWM
+}
+
+// Enable PWMG1 Output with 50% duty ratio
+void pwmg1_enable(void)
+{
+	pwmg1dtl = 0b0000_0000;// DB0 = pwmg1dtl[5] = 0
+	pwmg1dth = 0b0100_1110;// DB10_1 = {pwmg1dth[7:0], pwmg1dtl[7:6]} = 312
+
+	// Fpwm_duty = [DB10_1 + DB0*5 + 0.5] / (CB + 1) = 312.5 / 625 = 50%
+	pwmg1c = 0b0000_0110;// PA4 PWM
+}
+
+// Disable PWMG1
+void pwmg1_disable(void)
+{
+	pwmg1c = 0b0000_0000;// do not output PWM
+}
+
+// Enable PWMG1 Output with 50% duty ratio
+void pwmg2_enable(void)
+{
+	pwmg2dtl = 0b0000_0000;// DB0 = pwmg2dtl[5] = 0
+	pwmg2dth = 0b0100_1110;// DB10_1 = {pwmg2dth[7:0], pwmg2dtl[7:6]} = 312
+
+	// Fpwm_duty = [DB10_1 + DB0*5 + 0.5] / (CB + 1) = 312.5 / 625 = 50%
+	pwmg2c = 0b0000_0110;// PA3 PWM
+}
+
+// Disable PWMG2
+void pwmg2_disable(void)
+{
+	pwmg2c = 0b0000_0000;// do not output PWM
 }
 
 #if 0
