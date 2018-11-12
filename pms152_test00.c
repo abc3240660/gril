@@ -361,7 +361,7 @@ void pwm_freq_set(void)
 // 249 ~ 0 -> duty = (250 ~ 1) / 250
 void duty_ratio_deling(void)
 {
-	BYTE duty_ratio = 0
+	BYTE duty_ratio = 0;
 
 	if ((0 == duty_ratio_l) && (0 == duty_ratio_h)) {
 		return;
@@ -380,9 +380,9 @@ void duty_ratio_deling(void)
 // 0 ~ 249 -> duty = (1 ~ 250) / 250
 void duty_ratio_adding(void)
 {
-	BYTE duty_ratio = 0
+	BYTE duty_ratio = 0;
 
-	duty_ratio = duty_ratio_h*4 + duty_ratio_l;
+	duty_ratio = duty_ratio_h + duty_ratio_h + duty_ratio_h + duty_ratio_h + duty_ratio_l;
 
 	if (249 == duty_ratio) {
 		return;
@@ -399,8 +399,19 @@ void duty_ratio_adding(void)
 // Enable PWMG0 Output with X% duty ratio
 void pwmg0_enable(void)
 {
-	pwmg0dtl = duty_ratio_l*64 + 0b10_0000;// DB0 = pwmg0dtl[5] = 1
-	pwmg0dth = duty_ratio_h;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]}
+	if (0 == duty_ratio_l) {
+		pwmg0dtl = 0b10_0000;// DB0 = pwmg0dtl[5] = 1
+		pwmg0dth = duty_ratio_h;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]}
+	} else if (1 == duty_ratio_l) {
+		pwmg0dtl = 64 + 0b10_0000;// DB0 = pwmg0dtl[5] = 1
+		pwmg0dth = duty_ratio_h;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]}
+	} else if (2 == duty_ratio_l) {
+		pwmg0dtl = 128 + 0b10_0000;// DB0 = pwmg0dtl[5] = 1
+		pwmg0dth = duty_ratio_h;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]}
+	} else if (3 == duty_ratio_l) {
+		pwmg0dtl = 192 + 0b10_0000;// DB0 = pwmg0dtl[5] = 1
+		pwmg0dth = duty_ratio_h;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]}
+	}
 
 	// Fpwm_duty = [DB10_1 + DB0*0.5 + 0.5] / (CB + 1) = (DB10_1 + 1) / 250
 	pwmg0c = 0b0000_0110;// PA0 PWM
@@ -415,8 +426,19 @@ void pwmg0_disable(void)
 // Enable PWMG1 Output with X% duty ratio
 void pwmg1_enable(void)
 {
-	pwmg1dtl = duty_ratio_l*64 + 0b10_0000;// DB0 = pwmg0dtl[5] = 1
-	pwmg1dth = duty_ratio_h;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]}
+	if (0 == duty_ratio_l) {
+		pwmg1dtl = 0b10_0000;// DB0 = pwmg1dtl[5] = 1
+		pwmg1dth = duty_ratio_h;// DB10_1 = {pwmg1dth[7:0], pwmg1dtl[7:6]}
+	} else if (1 == duty_ratio_l) {
+		pwmg1dtl = 64 + 0b10_0000;// DB0 = pwmg1dtl[5] = 1
+		pwmg1dth = duty_ratio_h;// DB10_1 = {pwmg1dth[7:0], pwmg1dtl[7:6]}
+	} else if (2 == duty_ratio_l) {
+		pwmg1dtl = 128 + 0b10_0000;// DB0 = pwmg1dtl[5] = 1
+		pwmg1dth = duty_ratio_h;// DB10_1 = {pwmg1dth[7:0], pwmg1dtl[7:6]}
+	} else if (3 == duty_ratio_l) {
+		pwmg1dtl = 192 + 0b10_0000;// DB0 = pwmg1dtl[5] = 1
+		pwmg1dth = duty_ratio_h;// DB10_1 = {pwmg1dth[7:0], pwmg1dtl[7:6]}
+	}
 
 	// Fpwm_duty = [DB10_1 + DB0*0.5 + 0.5] / (CB + 1) = (DB10_1 + 1) / 250
 	pwmg1c = 0b0000_0110;// PA4 PWM
@@ -431,8 +453,19 @@ void pwmg1_disable(void)
 // Enable PWMG1 Output with X% duty ratio
 void pwmg2_enable(void)
 {
-	pwmg2dtl = duty_ratio_l*64 + 0b10_0000;// DB0 = pwmg0dtl[5] = 1
-	pwmg2dth = duty_ratio_h;// DB10_1 = {pwmg0dth[7:0], pwmg0dtl[7:6]}
+	if (0 == duty_ratio_l) {
+		pwmg2dtl = 0b10_0000;// DB0 = pwmg2dtl[5] = 1
+		pwmg2dth = duty_ratio_h;// DB10_1 = {pwmg2dth[7:0], pwmg2dtl[7:6]}
+	} else if (1 == duty_ratio_l) {
+		pwmg2dtl = 64 + 0b10_0000;// DB0 = pwmg2dtl[5] = 1
+		pwmg2dth = duty_ratio_h;// DB10_1 = {pwmg2dth[7:0], pwmg2dtl[7:6]}
+	} else if (2 == duty_ratio_l) {
+		pwmg2dtl = 128 + 0b10_0000;// DB0 = pwmg2dtl[5] = 1
+		pwmg2dth = duty_ratio_h;// DB10_1 = {pwmg2dth[7:0], pwmg2dtl[7:6]}
+	} else if (3 == duty_ratio_l) {
+		pwmg2dtl = 192 + 0b10_0000;// DB0 = pwmg2dtl[5] = 1
+		pwmg2dth = duty_ratio_h;// DB10_1 = {pwmg2dth[7:0], pwmg2dtl[7:6]}
+	}
 
 	// Fpwm_duty = [DB10_1 + DB0*0.5 + 0.5] / (CB + 1) = (DB10_1 + 1) / 250
 	pwmg2c = 0b0000_0110;// PA3 PWM
