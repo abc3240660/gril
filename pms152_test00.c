@@ -1,5 +1,8 @@
 #include	"extern.h"
 
+//#define FOR_DEBUG_USE1 1
+//#define FOR_DEBUG_USE2 1
+
 static BYTE duty_ratio_l;
 static BYTE duty_ratio_h;
 
@@ -25,7 +28,7 @@ BIT p_Out12	:	PB.0;// LED
 
 void FPPA0(void)
 {
-	.ADJUST_IC	SYSCLK = IHRC/2// SYSCLK = IHRC/2 = 8MHz
+	.ADJUST_IC	SYSCLK = IHRC/4// SYSCLK = IHRC/4 = 4MHz
 
 	$ p_Out5	Out, Low;// off
 	$ p_Out8	Out, Low;// off
@@ -197,7 +200,21 @@ void FPPA0(void)
 
 				if (mode_In3 != mode_In3_last) {
 					mode_In3_last = mode_In3;
-
+#ifdef FOR_DEBUG_USE1
+					if (0 == mode_In3) {
+						p_Out5 = 1;
+						p_Out8 = 1;
+					} else if (1 == mode_In3) {
+						p_Out9 = 1;
+					} else if (2 == mode_In3) {
+						p_Out10 = 1;
+					} else if (3 == mode_In3) {
+						p_Out5  = 0;
+						p_Out8  = 0;
+						p_Out9  = 0;
+						p_Out10 = 0;
+					}
+#else
 					if (2 == mode_In3) {
 						p_Out5  = 0;
 						p_Out8  = 0;
@@ -206,10 +223,12 @@ void FPPA0(void)
 					} else if (3 == mode_In3) {
 						p_Out5 = 1;
 					}
+#endif
 				}
 			}
 		}
-
+#ifdef FOR_DEBUG_USE1
+#else
 		if (f_16ms_Trig) {// every 16ms
 			f_16ms_Trig = 0;
 
@@ -221,7 +240,39 @@ void FPPA0(void)
 				if (0 == count_4s) {// every 4s
 					if (sub_mode_In3 != sub_mode_In3_last) {
 						sub_mode_In3_last = sub_mode_In3;
-
+#ifdef FOR_DEBUG_USE2
+					if (0 == sub_mode_In3) {
+						p_Out5  = 1;
+						p_Out8  = 0;
+						p_Out9  = 0;
+						p_Out10 = 1;
+					} else if (1 == sub_mode_In3) {
+						p_Out5  = 1;
+						p_Out8  = 1;
+						p_Out9  = 0;
+						p_Out10 = 0;
+					} else if (2 == sub_mode_In3) {
+						p_Out5  = 0;
+						p_Out8  = 1;
+						p_Out9  = 1;
+						p_Out10 = 0;
+					} else if (3 == sub_mode_In3) {
+						p_Out5  = 0;
+						p_Out8  = 0;
+						p_Out9  = 1;
+						p_Out10 = 1;
+					} else if (4 == sub_mode_In3) {
+						p_Out5  = 1;
+						p_Out8  = 1;
+						p_Out9  = 1;
+						p_Out10 = 1;
+					} else if (5 == sub_mode_In3) {
+						p_Out5  = 0;
+						p_Out8  = 0;
+						p_Out9  = 0;
+						p_Out10 = 0;
+					}
+#else
 						if (0 == sub_mode_In3) {
 							pwmg0_disable();
 							pwmg1_disable();
@@ -295,8 +346,11 @@ void FPPA0(void)
 							pwmg0_enable();	
 							pwmg2_enable();	
 						}
+#endif
 					}
 				} else {
+#ifdef FOR_DEBUG_USE2
+#else
 					if (0 == sub_mode_In3) {
 						pwmg0_disable();
 						duty_ratio_adding();
@@ -328,6 +382,7 @@ void FPPA0(void)
 						pwmg0_enable();	
 						pwmg2_enable();	
 					}
+#endif
 				}
 
 				count_4s++;
@@ -345,17 +400,18 @@ void FPPA0(void)
 				sub_mode_In3_last = 8;
 			}
 		}
+#endif
 	}
 }
 // PWMG0/1/2 Share the same Freq but different duty ratio
 // Setting PWM's Freq to 500Hz
-// Fpwm_freq = Fpwm_clk / (CB + 1) = 8M/64/250 = 500Hz
+// Fpwm_freq = Fpwm_clk / (CB + 1) = 4M/32/250 = 500Hz
 void pwm_freq_set(void)
 {
 	pwmgcubl = 0b0100_0000;
 	pwmgcubh = 0b0011_1110;// CB = {pwmgcubh[7:0], pwmgcubl[7:6]} = 249
 	
-	pwmgclk = 0b1110_0000;// Fpwm_clk = = SYSCLK / 64
+	pwmgclk = 0b1101_0000;// Fpwm_clk = SYSCLK / 32
 }
 
 // 249 ~ 0 -> duty = (250 ~ 1) / 250
@@ -476,19 +532,3 @@ void pwmg2_disable(void)
 {
 	pwmg2c = 0b0000_0000;// do not output PWM
 }
-
-#if 0
-void	Interrupt(void)
-{
-	pushaf;
-
-	if(Intrq.T16)
-	{	//	T16Trig
-		//	Usercanaddcode
-		Intrq.T16	=	0;
-		//...
-	}
-
-	popaf;
-}
-#endif
