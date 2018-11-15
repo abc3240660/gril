@@ -1,6 +1,6 @@
 #include	"extern.h"
 
-//#define FOR_DEBUG_USE1 1
+#define FOR_DEBUG_USE1 1
 //#define FOR_DEBUG_USE2 1
 
 static BYTE duty_ratio_l;
@@ -43,6 +43,9 @@ void FPPA0(void)
 	$ T16M		IHRC, /1, BIT10;// 16MHz/1 = 16MHz:the time base of T16.
 	$ TM2C		IHRC, Disable, Period, Inverse;
 
+	paph= 0b_0100_0000;
+	pbph= 0b_0100_0000;
+	
 	gpcs   = 0b1111_1101;// Vinternal R = Vdd*14/32
 	gpcc   = 0b1000_1010;// -:PB7, +:Vinternal R
 	pbdier = 0b0111_1111;// disable digital input for PB7
@@ -51,8 +54,10 @@ void FPPA0(void)
 	duty_ratio_l = 0;
 	duty_ratio_h = 0;
 
-	BYTE	Key_Flag;
-	Key_Flag = _FIELD(p_In2, p_In6);
+	BYTE	Key_FlagA;
+	BYTE	Key_FlagB;
+	Key_FlagB = _FIELD(p_In2);
+	Key_FlagA = _FIELD(p_In6);
 
 	BYTE	Sys_Flag = 0;
 	BIT	f_10ms_Trig	:	Sys_Flag.0;
@@ -97,18 +102,18 @@ void FPPA0(void)
 		if (f_10ms_Trig) {// every 10ms
 			f_10ms_Trig = 0;
 
-			A = (PA ^ Key_Flag) & _FIELD(p_In2);
+			A = (PB ^ Key_FlagB) & _FIELD(p_In2);
 			if (!ZF) {
 				//ButtonDown
 				if (!p_In2) {
 					if (--debounce_time_In2 == 0) {
-						Key_Flag ^= _FIELD(p_In2);
+						Key_FlagB ^= _FIELD(p_In2);
 						f_In2_Trig = 1;
 						debounce_time_In2 = 4;
 					}
 				} else {//ButtonUp
 					f_In2_Trig = 0;
-					Key_Flag ^= _FIELD(p_In2);
+					Key_FlagB ^= _FIELD(p_In2);
 				}
 			} else {
 				debounce_time_In2 = 4;
@@ -130,18 +135,18 @@ void FPPA0(void)
 				debounce_time_In3 = 2;
 			}
 
-			A = (PA ^ Key_Flag) & _FIELD(p_In6);
+			A = (PA ^ Key_FlagA) & _FIELD(p_In6);
 			if (!ZF) {
 				//ButtonDown
 				if (!p_In6) {
 					if (--debounce_time_In6 == 0) {
-						Key_Flag ^= _FIELD(p_In6);
+						Key_FlagA ^= _FIELD(p_In6);
 						f_In6_Trig = 1;
 						debounce_time_In6 = 4;
 					}
 				} else {//ButtonUp
 					f_In6_Trig = 0;
-					Key_Flag ^= _FIELD(p_In6);
+					Key_FlagA ^= _FIELD(p_In6);
 				}
 			} else {
 				debounce_time_In6 = 4;
